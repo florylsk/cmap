@@ -4,8 +4,10 @@
 #include <unistd.h>
 #include <time.h>
 #include <pthread.h>
+#include <omp.h>
 
 #define NUM_THREADS 20
+#define NSEC_PER_SEC 1000000000UL
 
 struct arg_struct {
     int startLoop;
@@ -14,6 +16,20 @@ struct arg_struct {
 
 //global variables
 pthread_mutex_t lock;
+
+
+void diffTime(struct timespec end,
+              struct timespec start,
+              struct timespec *diff)
+{
+    if (end.tv_nsec < start.tv_nsec) {
+        diff->tv_nsec = NSEC_PER_SEC - start.tv_nsec + end.tv_nsec;
+        diff->tv_sec = end.tv_sec - (start.tv_sec+1);
+    } else {
+        diff->tv_nsec = end.tv_nsec - start.tv_nsec;
+        diff->tv_sec = end.tv_sec - start.tv_sec;
+    }
+}
 
 void *testPort(void* arguments){
 
@@ -28,7 +44,7 @@ void *testPort(void* arguments){
         //pthread_mutex_lock(&lock);
         obj_socket = socket (AF_INET, SOCK_STREAM, 0 );
         //pthread_mutex_unlock(&lock);
-        inet_pton ( AF_INET, "127.0.0.1", &serv_addr.sin_addr);
+        inet_pton ( AF_INET, "45.33.32.156", &serv_addr.sin_addr);
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_port = htons(i);
 
@@ -46,36 +62,37 @@ void *testPort(void* arguments){
 
 int main ( int argument, char const *argv[] )
 {
-    int num_ports=40000;
-    clock_t begin = clock();
+    struct timespec startTime;
+    clock_gettime(CLOCK_REALTIME, &startTime);
 
-    pthread_t tid;
-    if (pthread_mutex_init(&lock, NULL) != 0)
-    {
-        printf("\n mutex init failed\n");
-        return 1;
-    }
-    int iter_per_thread=num_ports/NUM_THREADS;
-    for (int i=0; i<num_ports;i+=iter_per_thread+1){
-        struct arg_struct args;
-        args.startLoop=i;
-        args.endLoop=i+iter_per_thread;
-        if (pthread_create(&tid, NULL, &testPort, (void *)&args)) {
-            printf("Uh-oh!\n");
-            return -1;
+
+    int obj_socket = 0, reader;
+    struct sockaddr_in serv_addr;
+    omp_set_num_threads(20);
+    #pragma omp parallel for
+    for (int i=0;i<10000;i++){
+        //pthread_mutex_lock(&lock);
+        obj_socket = socket (AF_INET, SOCK_STREAM, 0 );
+        //pthread_mutex_unlock(&lock);
+        inet_pton ( AF_INET, "45.33.32.156", &serv_addr.sin_addr);
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_port = htons(i);
+
+        if ( connect( obj_socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr )) < 0){
+            //printf("[-] Port %d closed\n",i);
         }
+        else{
+            printf ( "[+]Port %d open\n",i);
 
+        }
+        close(obj_socket);
     }
 
-    for (int i=0; i<NUM_THREADS;i++){
-        pthread_join(tid, NULL); /* Wait until thread is finished */
-    }
-    pthread_mutex_destroy(&lock);
-
-
-    clock_t end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("Time taken: %f",time_spent);
+    struct timespec endTime;
+    struct timespec _diffTime;
+    clock_gettime(CLOCK_REALTIME, &endTime);
+    diffTime(endTime,startTime,&_diffTime);
+    printf("Time taken: %d seconds",_diffTime.tv_sec);
 
     return 0;
 }
