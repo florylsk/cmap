@@ -7,16 +7,7 @@
 #include <omp.h>
 #include <stdlib.h>
 
-#define NUM_THREADS 20
 #define NSEC_PER_SEC 1000000000UL
-
-struct arg_struct {
-    int startLoop;
-    int endLoop;
-};
-
-//global variables
-pthread_mutex_t lock;
 
 
 void diffTime(struct timespec end,
@@ -32,33 +23,7 @@ void diffTime(struct timespec end,
     }
 }
 
-void *testPort(void* arguments){
 
-    struct arg_struct *args = arguments;
-
-    int obj_socket = 0, reader;
-    struct sockaddr_in serv_addr;
-    int start_loop=args -> startLoop;
-    int end_loop=args -> endLoop;
-
-    for (int i=start_loop;i<end_loop;i++){
-        //pthread_mutex_lock(&lock);
-        obj_socket = socket (AF_INET, SOCK_STREAM, 0 );
-        //pthread_mutex_unlock(&lock);
-        inet_pton ( AF_INET, "45.33.32.156", &serv_addr.sin_addr);
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_port = htons(i);
-
-        if ( connect( obj_socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr )) < 0){
-            //printf("[-] Port %d closed\n",i);
-        }
-        else{
-            printf ( "[+]Port %d open\n",i);
-
-        }
-        close(obj_socket);
-    }
-}
 
 
 int main ( int argc, char const *argv[] )
@@ -81,16 +46,13 @@ int main ( int argc, char const *argv[] )
     omp_set_num_threads(40);
     #pragma omp parallel for
     for (int i=startPort;i<endPort;i++){
-        //pthread_mutex_lock(&lock);
+        //open socket for connection
         obj_socket = socket (AF_INET, SOCK_STREAM, 0 );
-        //pthread_mutex_unlock(&lock);
         inet_pton ( AF_INET, inputIP, &serv_addr.sin_addr);
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_port = htons(i);
-
-        if ( connect( obj_socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr )) < 0){
-            //printf("[-] Port %d closed\n",i);
-        }
+        //try to connect and see if it's open
+        if ( connect( obj_socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr )) < 0){}
         else{
             switch(i){
                 case 21:
