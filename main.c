@@ -68,7 +68,7 @@ int main ( int argument, char const *argv[] )
 
     int obj_socket = 0, reader;
     struct sockaddr_in serv_addr;
-    omp_set_num_threads(20);
+    omp_set_num_threads(40);
     #pragma omp parallel for
     for (int i=0;i<10000;i++){
         //pthread_mutex_lock(&lock);
@@ -83,9 +83,10 @@ int main ( int argument, char const *argv[] )
         }
         else{
             printf ( "[+]Port %d open\n",i);
+            close(obj_socket);
 
         }
-        close(obj_socket);
+
     }
 
     struct timespec endTime;
