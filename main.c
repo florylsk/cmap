@@ -2,15 +2,16 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <time.h>
 
 
 int main ( int argument, char const *argv[] )
 {
-
+    clock_t begin = clock();
     int obj_socket = 0, reader;
     struct sockaddr_in serv_addr;
 
-    for (int i=1;i<65535;i++){
+    for (int i=1;i<50000;i++){
         if (( obj_socket = socket (AF_INET, SOCK_STREAM, 0 )) < 0)
         {
             printf ( "Socket creation error !" );
@@ -33,6 +34,9 @@ int main ( int argument, char const *argv[] )
     }
 
 
+    clock_t end = clock();
+    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+    printf("Time taken: %f",time_spent);
 
     return 0;
 }
