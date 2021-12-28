@@ -30,8 +30,8 @@ int main ( int argc, char const *argv[] )
 {
     struct timespec startTime;
     clock_gettime(CLOCK_REALTIME, &startTime);
-    if (argc!=4){
-        printf("Format: cmap {IP} {PortStart} {PortEnd}\n");
+    if (argc!=5){
+        printf("Format: cmap {IP} {PortStart} {PortEnd} {NumThreads}\n");
         return 0;
     }
     //IP to ping
@@ -40,17 +40,20 @@ int main ( int argc, char const *argv[] )
     int startPort=atoi(argv[2]);
     //port to stop scanning at
     int endPort=atoi(argv[3]);
+    //number of threads to paralellize the program with
+    int numThreads=atoi(argv[4]);
     int obj_socket = 0, reader;
     struct sockaddr_in serv_addr;
-
-    omp_set_num_threads(40);
+    omp_set_num_threads(numThreads);
     #pragma omp parallel for
     for (int i=startPort;i<endPort;i++){
+
         //open socket for connection
         obj_socket = socket (AF_INET, SOCK_STREAM, 0 );
         inet_pton ( AF_INET, inputIP, &serv_addr.sin_addr);
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_port = htons(i);
+
         //try to connect and see if it's open
         if ( connect( obj_socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr )) < 0){}
         else{
